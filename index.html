@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نام و نام خانوادگی — توسعه‌دهنده بک‌اند | Django Developer</title>
+<meta name="description" content="پورتفولیوی شخصی یک توسعه‌دهنده بک‌اند با تخصص در جنگو">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  /* ============================================================
+     TOKENS — این‌جا رنگ‌ها و فونت‌ها رو مدیریت کن
+     ============================================================ */
+  :root{
+    --bg:            #0E1420;
+    --bg-elevated:   #131A2A;
+    --surface:       #1A2233;
+    --surface-hover: #212B40;
+    --border:        #2A3348;
+    --border-soft:   #232C40;
+
+    --text:          #E9ECF4;
+    --text-muted:    #8B93A8;
+    --text-faint:    #5B6478;
+
+    --accent:        #4FBF8B;   /* سبز تیم — نه سبز اسیدی کلیشه‌ای */
+    --accent-dim:    rgba(79,191,139,0.14);
+    --accent-line:   rgba(79,191,139,0.35);
+
+    --amber:         #E8A54D;   /* رنگ دوم برای تضاد و تنوع */
+    --amber-dim:     rgba(232,165,77,0.14);
+
+    --red:           #E06C75;   /* برای متد DELETE و خطاها */
+
+    --font-display:  'Vazirmatn', sans-serif;
+    --font-body:     'Vazirmatn', sans-serif;
+    --font-mono:     'JetBrains Mono', monospace;
+
+    --radius: 10px;
+    --radius-lg: 16px;
+    --container: 1080px;
+  }
+
+  *{ margin:0; padding:0; box-sizing:border-box; }
+
+  html{ scroll-behavior:smooth; }
+
+  @media (prefers-reduced-motion: reduce){
+    html{ scroll-behavior:auto; }
+    *{ animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; }
+  }
+
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--font-body);
+    line-height:1.75;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+    background-image:
+      radial-gradient(ellipse 900px 500px at 15% -5%, rgba(79,191,139,0.08), transparent),
+      radial-gradient(ellipse 700px 500px at 100% 10%, rgba(232,165,77,0.05), transparent);
+    background-repeat:no-repeat;
+  }
+
+  .ltr{ direction:ltr; unicode-bidi:isolate; }
+  .mono{ font-family:var(--font-mono); }
+
+  a{ color:inherit; text-decoration:none; }
+  ul{ list-style:none; }
+  img{ max-width:100%; display:block; }
+
+  .wrap{
+    max-width:var(--container);
+    margin:0 auto;
+    padding:0 24px;
+  }
+
+  .eyebrow{
+    font-family:var(--font-mono);
+    font-size:12.5px;
+    letter-spacing:0.02em;
+    color:var(--accent);
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:14px;
+  }
+  .eyebrow::before{
+    content:'';
+    width:6px; height:6px;
+    border-radius:50%;
+    background:var(--accent);
+    box-shadow:0 0 8px var(--accent-line);
+  }
+
+  .section-title{
+    font-family:var(--font-display);
+    font-weight:800;
+    font-size:clamp(26px, 3.6vw, 38px);
+    letter-spacing:-0.01em;
+    margin-bottom:12px;
+  }
+  .section-sub{
+    color:var(--text-muted);
+    font-size:16px;
+    max-width:560px;
+    margin-bottom:48px;
+  }
+
+  section{ padding:110px 0; position:relative; }
+  section + section{ border-top:1px solid var(--border-soft); }
+
+  /* method badges — استفاده مکرر در سایت */
+  .method{
+    font-family:var(--font-mono);
+    font-size:11.5px;
+    font-weight:700;
+    letter-spacing:0.03em;
+    padding:3px 9px;
+    border-radius:5px;
+    display:inline-block;
+  }
+  .method.get{  color:var(--accent); background:var(--accent-dim); border:1px solid var(--accent-line); }
+  .method.post{ color:var(--amber);  background:var(--amber-dim); border:1px solid rgba(232,165,77,0.35); }
+  .method.del{  color:var(--red);    background:rgba(224,108,117,0.12); border:1px solid rgba(224,108,117,0.35); }
+
+  /* reveal on scroll */
+  .reveal{ opacity:0; transform:translateY(18px); transition:opacity .7s ease, transform .7s ease; }
+  .reveal.is-visible{ opacity:1; transform:translateY(0); }
+
+  /* ============================================================
+     NAV
+     ============================================================ */
+  header{
+    position:fixed; top:0; right:0; left:0; z-index:100;
+    background:rgba(14,20,32,0.75);
+    backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--border-soft);
+  }
+  nav.wrap{
+    display:flex; align-items:center; justify-content:space-between;
+    height:68px;
+  }
+  .logo{
+    font-family:var(--font-mono);
+    font-weight:700;
+    font-size:15px;
+    display:flex; align-items:center; gap:8px;
+    color:var(--text);
+  }
+  .logo span{ color:var(--accent); }
+  .nav-links{ display:flex; gap:34px; align-items:center; }
+  .nav-links a{
+    font-size:14.5px; color:var(--text-muted);
+    transition:color .2s ease;
+    position:relative;
+  }
+  .nav-links a:hover{ color:var(--text); }
+  .nav-cta{
+    font-family:var(--font-mono);
+    font-size:13px;
+    color:var(--accent) !important;
+    border:1px solid var(--accent-line);
+    padding:8px 16px;
+    border-radius:8px;
+    background:var(--accent-dim);
+  }
+  .nav-cta:hover{ background:rgba(79,191,139,0.22) !important; }
+
+  .burger{ display:none; background:none; border:none; color:var(--text); cursor:pointer; }
+
+  /* ============================================================
+     HERO — سیگنیچر المنت: ترمینال با ریسپانس API زنده
+     ============================================================ */
+  .hero{
+    min-height:100vh;
+    display:flex; align-items:center;
+    padding-top:100px;
+  }
+  .hero-grid{
+    display:grid;
+    grid-template-columns:1.1fr 0.9fr;
+    gap:56px;
+    align-items:center;
+  }
+  .hero-kicker{
+    font-family:var(--font-mono);
+    font-size:13px;
+    color:var(--text-muted);
+    margin-bottom:20px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .hero-kicker .dot{
+    width:8px;height:8px;border-radius:50%;
+    background:var(--accent);
+    box-shadow:0 0 0 4px var(--accent-dim);
+  }
+  .hero h1{
+    font-family:var(--font-display);
+    font-size:clamp(34px, 5vw, 56px);
+    font-weight:800;
+    line-height:1.25;
+    letter-spacing:-0.02em;
+    margin-bottom:20px;
+  }
+  .hero h1 em{
+    font-style:normal;
+    color:var(--accent);
+  }
+  .hero p.lead{
+    font-size:17.5px;
+    color:var(--text-muted);
+    max-width:480px;
+    margin-bottom:36px;
+  }
+  .hero-actions{ display:flex; gap:14px; flex-wrap:wrap; }
+  .btn{
+    font-family:var(--font-mono);
+    font-size:14px;
+    font-weight:500;
+    padding:13px 22px;
+    border-radius:9px;
+    display:inline-flex; align-items:center; gap:8px;
+    transition:transform .18s ease, background .18s ease, border-color .18s ease;
+  }
+  .btn-primary{
+    background:var(--accent);
+    color:#0E1420;
+    font-weight:700;
+  }
+  .btn-primary:hover{ transform:translateY(-2px); }
+  .btn-ghost{
+    border:1px solid var(--border);
+    color:var(--text);
+  }
+  .btn-ghost:hover{ border-color:var(--text-faint); transform:translateY(-2px); }
+
+  /* terminal card */
+  .terminal{
+    background:var(--bg-elevated);
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    overflow:hidden;
+    box-shadow:0 30px 60px -20px rgba(0,0,0,0.5), 0 0 0 1px rgba(79,191,139,0.04);
+  }
+  .terminal-bar{
+    display:flex; align-items:center; gap:8px;
+    padding:12px 16px;
+    background:var(--surface);
+    border-bottom:1px solid var(--border);
+  }
+  .terminal-bar .tdot{ width:11px; height:11px; border-radius:50%; }
+  .terminal-bar .tdot:nth-child(1){ background:#E06C75; }
+  .terminal-bar .tdot:nth-child(2){ background:#E8A54D; }
+  .terminal-bar .tdot:nth-child(3){ background:#4FBF8B; }
+  .terminal-bar span{
+    margin-inline-start:auto;
+    font-family:var(--font-mono);
+    font-size:11.5px;
+    color:var(--text-faint);
+  }
+  .terminal-body{
+    padding:24px;
+    font-family:var(--font-mono);
+    font-size:13.8px;
+    direction:ltr;
+    text-align:left;
+  }
+  .terminal-body .req{ color:var(--text-muted); margin-bottom:14px; }
+  .terminal-body .req .m{ color:var(--accent); font-weight:700; }
+  .terminal-body pre{
+    white-space:pre-wrap;
+    word-break:break-word;
+    color:var(--text);
+  }
+  .terminal-body .k{ color:#7FB0E0; }
+  .terminal-body .s{ color:#E8A54D; }
+  .terminal-body .b{ color:#4FBF8B; }
+  .cursor{
+    display:inline-block;
+    width:7px; height:15px;
+    background:var(--accent);
+    margin-inline-start:2px;
+    animation:blink 1s step-start infinite;
+    vertical-align:text-bottom;
+  }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  .avatar-row{
+    display:flex; align-items:center; gap:14px;
+    margin-top:20px;
+    padding-top:20px;
+    border-top:1px solid var(--border-soft);
+  }
+  .avatar{
+    width:44px; height:44px;
+    border-radius:50%;
+    object-fit:cover;
+    border:2px solid var(--accent-line);
+  }
+  .avatar-row .name{ font-family:var(--font-body); font-weight:600; font-size:14.5px; }
+  .avatar-row .role{ font-size:12.5px; color:var(--text-muted); }
+
+  /* ============================================================
+     ABOUT
+     ============================================================ */
+  .about-grid{
+    display:grid;
+    grid-template-columns:260px 1fr;
+    gap:56px;
+    align-items:start;
+  }
+  .about-photo{
+    width:100%;
+    aspect-ratio:1/1;
+    border-radius:var(--radius-lg);
+    overflow:hidden;
+    border:1px solid var(--border);
+    background:var(--surface);
+  }
+  .about-photo img{ width:100%; height:100%; object-fit:cover; }
+  .docstring{
+    font-family:var(--font-mono);
+    font-size:13.5px;
+    color:var(--text-faint);
+    background:var(--bg-elevated);
+    border-inline-start:3px solid var(--accent);
+    padding:16px 18px;
+    border-radius:6px;
+    margin-top:22px;
+    direction:ltr;
+    text-align:left;
+    line-height:1.9;
+  }
+  .about-text p{ color:var(--text-muted); margin-bottom:16px; font-size:16px; }
+  .about-facts{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:14px;
+    margin-top:28px;
+  }
+  .fact{
+    background:var(--surface);
+    border:1px solid var(--border-soft);
+    border-radius:var(--radius);
+    padding:16px;
+  }
+  .fact .n{ font-family:var(--font-mono); font-size:22px; font-weight:700; color:var(--accent); }
+  .fact .l{ font-size:12.5px; color:var(--text-muted); margin-top:4px; }
+
+  /* ============================================================
+     SKILLS
+     ============================================================ */
+  .skills-cols{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:20px;
+  }
+  .skill-col{
+    background:var(--surface);
+    border:1px solid var(--border-soft);
+    border-radius:var(--radius-lg);
+    padding:22px;
+  }
+  .skill-col h3{
+    font-family:var(--font-mono);
+    font-size:12.5px;
+    color:var(--text-muted);
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    margin-bottom:16px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .skill-col h3::before{ content:'//'; color:var(--accent-line); }
+  .skill-col ul li{
+    font-size:14.5px;
+    padding:7px 0;
+    color:var(--text);
+    border-top:1px dashed var(--border-soft);
+  }
+  .skill-col ul li:first-child{ border-top:none; }
+
+  /* ============================================================
+     PROJECTS — کارت‌های استایل مستندات API
+     ============================================================ */
+  .project-card{
+    background:var(--surface);
+    border:1px solid var(--border-soft);
+    border-radius:var(--radius-lg);
+    padding:28px;
+    margin-bottom:20px;
+    transition:border-color .25s ease, transform .25s ease, background .25s ease;
+  }
+  .project-card:hover{
+    border-color:var(--accent-line);
+    background:var(--surface-hover);
+    transform:translateY(-3px);
+  }
+  .project-head{
+    display:flex; align-items:center; gap:12px;
+    margin-bottom:14px;
+    flex-wrap:wrap;
+  }
+  .project-route{
+    font-family:var(--font-mono);
+    font-size:14px;
+    color:var(--text);
+    direction:ltr;
+  }
+  .project-status{
+    margin-inline-start:auto;
+    font-family:var(--font-mono);
+    font-size:11.5px;
+    color:var(--text-faint);
+  }
+  .project-card h3{
+    font-family:var(--font-display);
+    font-size:20px;
+    font-weight:700;
+    margin-bottom:10px;
+  }
+  .project-card p{ color:var(--text-muted); font-size:15px; margin-bottom:18px; max-width:640px; }
+  .tag-row{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; }
+  .tag{
+    font-family:var(--font-mono);
+    font-size:11.5px;
+    color:var(--text-muted);
+    border:1px solid var(--border);
+    padding:4px 10px;
+    border-radius:6px;
+  }
+  .project-links{ display:flex; gap:20px; }
+  .project-links a{
+    font-family:var(--font-mono);
+    font-size:13px;
+    color:var(--accent);
+    border-bottom:1px solid var(--accent-line);
+    padding-bottom:2px;
+  }
+  .project-links a:hover{ color:var(--text); border-color:var(--text); }
+
+  /* ============================================================
+     EXPERIENCE — استایل git log
+     ============================================================ */
+  .commit{
+    display:grid;
+    grid-template-columns:24px 1fr;
+    gap:20px;
+    padding-bottom:36px;
+    position:relative;
+  }
+  .commit::before{
+    content:'';
+    position:absolute;
+    top:26px; bottom:-6px;
+    right:11px;
+    width:1px;
+    background:var(--border);
+  }
+  .commit:last-child::before{ display:none; }
+  .commit-node{
+    width:22px; height:22px;
+    border-radius:50%;
+    background:var(--bg-elevated);
+    border:2px solid var(--accent);
+    display:flex; align-items:center; justify-content:center;
+    z-index:1;
+  }
+  .commit-node span{ width:6px; height:6px; border-radius:50%; background:var(--accent); }
+  .commit-meta{
+    font-family:var(--font-mono);
+    font-size:12px;
+    color:var(--text-faint);
+    display:flex; gap:12px; margin-bottom:8px;
+    direction:ltr;
+    justify-content:flex-end;
+  }
+  .commit-body h3{
+    font-family:var(--font-display);
+    font-size:18.5px;
+    font-weight:700;
+    margin-bottom:4px;
+  }
+  .commit-body .co{ color:var(--accent); font-size:14.5px; margin-bottom:12px; }
+  .diff{ font-family:var(--font-mono); font-size:13.5px; direction:ltr; text-align:left; color:var(--text-muted); }
+  .diff .plus{ color:var(--accent); }
+  .diff .minus{ color:var(--text-faint); }
+  .diff div{ padding:2px 0; }
+
+  /* ============================================================
+     CONTACT — استایل فایل .env
+     ============================================================ */
+  .env-box{
+    background:var(--bg-elevated);
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    padding:32px;
+    max-width:640px;
+  }
+  .env-box .filename{
+    font-family:var(--font-mono);
+    font-size:12.5px;
+    color:var(--text-faint);
+    margin-bottom:18px;
+    direction:ltr; text-align:left;
+  }
+  .env-line{
+    font-family:var(--font-mono);
+    font-size:14.5px;
+    display:flex;
+    gap:10px;
+    padding:9px 0;
+    border-top:1px dashed var(--border-soft);
+    direction:ltr;
+    text-align:left;
+  }
+  .env-line:first-of-type{ border-top:none; }
+  .env-line .key{ color:#7FB0E0; }
+  .env-line .eq{ color:var(--text-faint); }
+  .env-line a.val, .env-line span.val{ color:var(--amber); }
+  .env-line a.val:hover{ color:var(--text); }
+
+  .contact-cta{
+    margin-top:32px;
+    display:flex; gap:14px; flex-wrap:wrap;
+  }
+
+  footer{
+    padding:40px 0;
+    text-align:center;
+    border-top:1px solid var(--border-soft);
+  }
+  footer p{
+    font-family:var(--font-mono);
+    font-size:12.5px;
+    color:var(--text-faint);
+  }
+  footer .heart{ color:var(--accent); }
+
+  /* ============================================================
+     RESPONSIVE
+     ============================================================ */
+  @media (max-width: 900px){
+    .hero-grid{ grid-template-columns:1fr; }
+    .about-grid{ grid-template-columns:1fr; }
+    .about-photo{ max-width:220px; }
+    .skills-cols{ grid-template-columns:repeat(2,1fr); }
+  }
+
+  @media (max-width: 720px){
+    .nav-links{
+      position:fixed; inset-inline-start:0; top:68px;
+      width:100%; flex-direction:column;
+      background:var(--bg-elevated);
+      border-bottom:1px solid var(--border);
+      padding:20px 24px; gap:18px;
+      transform:translateY(-130%);
+      transition:transform .3s ease;
+    }
+    .nav-links.open{ transform:translateY(0); }
+    .burger{ display:block; }
+    .skills-cols{ grid-template-columns:1fr 1fr; }
+    section{ padding:72px 0; }
+    .commit-meta{ justify-content:flex-start; }
+  }
+
+  @media (max-width: 480px){
+    .skills-cols{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <nav class="wrap">
+    <div class="logo">$<span>_</span> ارتین محسن پور</div>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="#about">درباره من</a></li>
+      <li><a href="#skills">مهارت‌ها</a></li>
+      <li><a href="#projects">پروژه‌ها</a></li>
+      <li><a href="#experience">تجربه</a></li>
+      <li><a href="#contact" class="nav-cta">تماس با من</a></li>
+    </ul>
+    <button class="burger" id="burger" aria-label="باز کردن منو">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+  </nav>
+</header>
+
+<!-- ============================================================
+     HERO
+     🔧 جای‌گزین کن: نام، نقش، توضیح کوتاه، لینک رزومه، عکس آواتار
+     ============================================================ -->
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="hero-kicker"><span class="dot"></span> در دسترس برای همکاری</div>
+      <h1>سلام، من <em>ارتین محسن پور</em> هستم؛<br>توسعه‌دهنده وبسایت</h1>
+      <p class="lead">
+        وسعه‌دهنده فول‌استک (Full-Stack Developer) | متخصص Django و طراحی رابط کاربری
+      </p>
+      <div class="hero-actions">
+        <a href="#projects" class="btn btn-primary">مشاهده پروژه‌ها ↓</a>
+       
+      </div>
+    </div>
+
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="tdot"></div><div class="tdot"></div><div class="tdot"></div>
+        <span>whoami.sh</span>
+      </div>
+      <div class="terminal-body">
+        <div class="req"><span class="m">GET</span> /api/v1/whoami HTTP/1.1</div>
+        <pre id="typedResponse"></pre>
+      </div>
+      <div style="padding:0 24px 24px;">
+        <div class="avatar-row">
+          <!-- 🔧 عکس خودت رو جایگزین این src کن -->
+          <img class="avatar" src="https://api.dicebear.com/7.x/shapes/svg?seed=developer" alt="عکس پروفایل">
+          <div>
+            <div class="name">ارتین محسن پور</div>
+            <div class="role">Backend Developer · Django . HTML5 . CSS . JS</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     ABOUT
+     🔧 جای‌گزین کن: عکس، بیوگرافی، آمار (سال تجربه، پروژه، ...)
+     ============================================================ -->
+<section id="about">
+  <div class="wrap about-grid">
+    <div class="reveal">
+      <div class="about-photo">
+        <!-- 🔧 عکس خودت -->
+        <img src="https://api.dicebear.com/7.x/shapes/svg?seed=about" alt="عکس درباره من">
+      </div>
+      <div class="docstring">
+"""<br>
+Backend Developer specialized in Django & DRF.<br>
+Focused on clean architecture, scalable APIs<br>
+and readable code.<br>
+"""
+      </div>
+    </div>
+    <div class="reveal about-text">
+      <div class="eyebrow">درباره من</div>
+      <h2 class="section-title">کمی بیشتر بدون من بدونید</h2>
+      <p>سلام، من ارتین هستم، توسعه‌دهنده فول‌استک با تمرکز بر ساخت اپلیکیشن‌های وب قدرتمند و مقیاس‌پذیر.   <br>
+
+        اگر به دنبال ساخت یک وب‌سایت هستید که نه تنها ظاهر زیبایی داشته باشد، بلکه در پس‌زمینه با سرعت و امنیت بالا کار کند، من می‌توانم به شما کمک کنم.
+        <br>
+        مهارت‌های کلیدی من:
+        <br>
+        **Back-end: تسلط کامل بر فریم‌ورک Django و پایتون برای پیاده‌سازی منطق پیچیده، مدیریت دیتابیس و امنیت بالا.  <br>
+        **Front-end: طراحی رابط کاربری (UI) واکنش‌گرا و مدرن با استفاده از HTML5، CSS3 و JavaScript.  <br>
+        تمرکز من: تحویل کد تمیز، رعایت اصول امنیتی و بهینه‌سازی سرعت سایت برای تجربه کاربری بهتر.**  <br>
+        من با دقت و نظم بالا پروژه‌ها را پیش می‌برم تا هدف شما در کوتاه‌ترین زمان ممکن محقق شود. آماده همکاری روی پروژه‌های شما هستم  <br> </p>  
+
+      <div class="about-facts">
+        <div class="fact"><div class="n">+4</div><div class="l">سال تجربه</div></div>
+        <div class="fact"><div class="n">3</div><div class="l">پروژه تکمیل‌شده</div></div>
+        <div class="fact"><div class="n">1</div><div class="l">تیم</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SKILLS
+     🔧 جای‌گزین کن: مهارت‌های واقعی خودت رو در هر ستون بنویس
+     ============================================================ -->
+<section id="skills">
+  <div class="wrap">
+    <div class="eyebrow reveal">مهارت‌ها</div>
+    <h2 class="section-title reveal">تکنولوژی‌هایی که باهاشون کار می‌کنم</h2>
+    
+
+    <div class="skills-cols reveal">
+      <div class="skill-col">
+        <h3>Languages</h3>
+        <ul>
+          <li>python</li>
+          <li>SQL</li>
+          <li>HTML</li>
+          <li>CSS</li>
+        </ul>
+      </div>
+      <div class="skill-col">
+        <h3>Frameworks</h3>
+        <ul>
+          <li>Django</li>
+          <li>Django REST Framework</li>
+          <li>FastAPI</li>
+        </ul>
+      </div>
+      <div class="skill-col">
+        <h3>Data & Infra</h3>
+        <ul>
+          <li>PostgreSQL</li>
+          <li>Redis</li>
+          <li>Celery</li>
+        </ul>
+      </div>
+      <div class="skill-col">
+        <h3>DevOps</h3>
+        <ul>
+          <li>Docker</li>
+          <li>Nginx</li>
+          <li>CI / CD</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     PROJECTS
+     🔧 برای هر پروژه: نام، توضیح، تکنولوژی‌ها، لینک گیت‌هاب و دمو
+     ============================================================ -->
+<section id="projects">
+  <div class="wrap">
+    <div class="eyebrow reveal">پروژه‌ها</div>
+    <h2 class="section-title reveal">چیزهایی که ساختم</h2>
+    
+
+    <div class="reveal">
+      <div class="project-card">
+        <div class="project-head">
+          <span class="method post">POST</span>
+          <span class="project-route ltr">/projects/project-one</span>
+          <span class="project-status">200 OK</span>
+        </div>
+        <h3>سایت برای شرکت بازی سازی</h3>
+        <p>سایتی زیبا برای معرفی شرکت بازی سازی و یک بخش برای نشان دادن پروژه های اینده که با پنل ادمین کنترل میشن</p>
+        <div class="tag-row">
+          <span class="tag">Django</span>
+          <span class="tag">DRF</span>
+          <span class="tag">PostgreSQL</span>
+          <span class="tag">Docker</span>
+          <span class="tag">HTML + CSS</span>
+        </div>
+        <div class="project-links">
+          <a href="#" class="ltr">GitHub ↗</a>
+          <a href="#" class="ltr">Live Demo ↗</a>
+        </div>
+      </div>
+
+      <div class="project-card">
+        <div class="project-head">
+          <span class="method get">GET</span>
+          <span class="project-route ltr">/projects/project-two</span>
+          <span class="project-status">200 OK</span>
+        </div>
+        <h3>سایت وبلاگ</h3>
+        <p>سایت وبلاگ حرفه ای با بخش های مختلف مانند کتگوری . بخش جست و جو . بخش تگ و صفحه بندی و... با طراحی شیک و زیبا</p>
+
+        <div class="tag-row">
+          <span class="tag">Django</span>
+          <span class="tag">Redis</span>
+          <span class="tag">Celery</span>
+        </div>
+        <div class="project-links">
+          <a href="#" class="ltr">render ↗</a>
+          <a href="#" class="ltr">Live Demo ↗</a>
+        </div>
+      </div>
+
+      <div class="project-card">
+        <div class="project-head">
+          <span class="method post">POST</span>
+          <span class="project-route ltr">/projects/project-three</span>
+          <span class="project-status">200 OK</span>
+        </div>
+        <h3>سایت فروشگاهی فروش لوازم الکترونیک</h3>
+        <p>سایت فروشگاهی با دیتابیس واقعی با سیستم های پیچیده و طراحی زیبا</p>
+        <div class="tag-row">
+          <span class="tag">Django</span>
+          <span class="tag">GraphQL</span>
+          <span class="tag">PostgreSQL</span>
+          <span class="tag">HTML + CSS</span>
+        </div>
+        <div class="project-links">
+          <a href="#" class="ltr">render ↗</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     EXPERIENCE — به سبک git log
+     🔧 برای هر شغل: عنوان، شرکت، تاریخ، شرح مسئولیت‌ها
+     ============================================================ -->
+<section id="experience">
+  <div class="wrap">
+    <div class="eyebrow reveal">تجربه کاری</div>
+    <h2 class="section-title reveal">مسیر</h2>
+    
+
+    <div class="reveal">
+      <div class="commit">
+        <div class="commit-node"><span></span></div>
+        <div class="commit-body">
+          <div class="commit-meta"><span>#a1b2c3d</span><span>2026 — اکنون</span></div>
+          <h3>فریلنسر</h3>
+          <div class="co">کارلنسر + پونیشا</div>
+          <div class="diff">
+            <div class="plus">+ توسعه و نگهداری APIهای Django با پوشش تست بالا</div>
+            <div class="plus">+ بهینه‌سازی کوئری‌های پایگاه‌داده و کاهش زمان پاسخ</div>
+            <div class="plus">+ ساخت یک سایت واقعی حرفه ای</div>
+            <div class="minus">- رفع بدهی فنی در سرویس‌های قدیمی</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-node"><span></span></div>
+        <div class="commit-body">
+          <div class="commit-meta"><span>#e4f5g6h</span><span>2024 — 2026</span></div>
+          <h3>دانشجو</h3>
+          <div class="co"></div>
+          <div class="diff">
+            <div class="plus">هنوز هم دانشجو هستم</div>
+            
+          </div>
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-node"><span></span></div>
+        <div class="commit-body">
+          <div class="commit-meta"><span>#i7j8k9l</span><span>2021 — 2026</span></div>
+          <h3>یادگیری طراحی سایت فول استک</h3>
+
+          <div class="diff">
+            <div class="plus">+4 سال یادگیری برنامه نویسی</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     CONTACT — به سبک فایل .env
+     🔧 ایمیل، گیت‌هاب، لینکدین و بقیه لینک‌ها رو جایگزین کن
+     ============================================================ -->
+<section id="contact">
+  <div class="wrap">
+    <div class="eyebrow reveal">تماس</div>
+    <h2 class="section-title reveal">بیا با هم صحبت کنیم</h2>
+    <p class="section-sub reveal">برای همکاری، پیشنهاد پروژه یا فقط یه سلام، از راه‌های زیر پیدام کن.</p>
+
+    <div class="env-box reveal">
+      <div class="filename">.env — contact</div>
+      <div class="env-line"><span class="key">EMAIL</span><span class="eq">=</span><a class="val" href="mailto:artinmohsenpour@gmail.com">artinmohsenpour@gmail.com</a></div>
+      <div class="env-line"><span class="key">GITHUB</span><span class="eq">=</span><a class="val" href="#" target="_blank">github.com/username</a></div>
+      <div class="env-line"><span class="key">LOCATION</span><span class="eq">=</span><span class="val">تبریز</span></div>
+    </div>
+
+    <div class="contact-cta reveal">
+      <a href="mailto:artinmohsenpour@gmail.com" class="btn btn-primary">ارسال ایمیل</a>
+
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>ساخته‌شده با <span class="heart">♥</span> و Django · © <span id="year"></span> ارتین محسن پور</p>
+</footer>
+
+<script>
+  // سال جاری در فوتر
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  // منوی موبایل
+  const burger = document.getElementById('burger');
+  const navLinks = document.getElementById('navLinks');
+  burger.addEventListener('click', () => navLinks.classList.toggle('open'));
+  navLinks.querySelectorAll('a').forEach(a => a.addEventListener('click', () => navLinks.classList.remove('open')));
+
+  // انیمیشن تایپ در ترمینال هیرو
+  const responseObj =
+`{
+  "<span class="k">name</span>": "<span class="b">ارتین محسن پور</span>",
+  "<span class="k">role</span>": "<span class="b">Backend & frontend Developer</span>",
+  "<span class="k">stack</span>": ["<span class="s">Django</span>", "<span class="s">DRF</span>", "<span class="s">PostgreSQL</span>"],
+  "<span class="k">available_for_hire</span>": <span class="b">true</span>
+}`;
+  const el = document.getElementById('typedResponse');
+  const plain = responseObj.replace(/<[^>]+>/g,'');
+  let i = 0;
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function typeStep(){
+    if(reduceMotion){ el.innerHTML = responseObj; return; }
+    if(i <= plain.length){
+      // برای حفظ تگ‌های رنگی، وقتی تایپ تموم شد نسخه رنگی رو جایگزین می‌کنیم
+      el.textContent = plain.slice(0, i);
+      i += 2;
+      requestAnimationFrame(() => setTimeout(typeStep, 14));
+    } else {
+      el.innerHTML = responseObj + '<span class="cursor"></span>';
+    }
+  }
+  typeStep();
+
+  // reveal on scroll
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('is-visible'); io.unobserve(e.target); } });
+  }, { threshold: 0.15 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+
+</body>
+</html>
